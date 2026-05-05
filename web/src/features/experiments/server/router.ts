@@ -232,11 +232,23 @@ export const experimentsRouter = createTRPCRouter({
         throw new UnauthorizedError("Experiment creation failed");
       }
 
+      const prompt = await ctx.prisma.prompt.findFirst({
+        where: {
+          id: input.promptId,
+          projectId: input.projectId,
+        },
+      });
+
+      const promptConfig = (prompt?.config as Record<string, any>) || {};
+
       const metadata: ExperimentMetadata = {
         prompt_id: input.promptId,
-        provider: input.modelConfig.provider,
-        model: input.modelConfig.model,
-        model_params: input.modelConfig.modelParams,
+        provider: promptConfig.provider || input.modelConfig.provider,
+        model: promptConfig.model || input.modelConfig.model,
+        model_params: {
+          ...input.modelConfig.modelParams,
+          ...promptConfig,
+        },
         ...(input.structuredOutputSchema && {
           structured_output_schema: input.structuredOutputSchema,
         }),
