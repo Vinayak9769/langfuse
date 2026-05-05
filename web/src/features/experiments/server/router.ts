@@ -45,6 +45,7 @@ import {
   timeFilter,
   AGGREGATABLE_SCORE_TYPES,
   filterAndValidateDbScoreList,
+  LangfuseNotFoundError,
 } from "@langfuse/shared";
 import { throwIfNoProjectAccess } from "@/src/features/rbac/utils/checkProjectAccess";
 import { aggregateScores } from "@/src/features/scores/lib/aggregateScores";
@@ -239,7 +240,13 @@ export const experimentsRouter = createTRPCRouter({
         },
       });
 
+      if (!prompt) {
+        throw new LangfuseNotFoundError("Prompt not found");
+      }
+
       const promptConfig = (prompt?.config as Record<string, any>) || {};
+      const { provider: _provider, model: _model, ...promptModelParams } =
+        promptConfig;
 
       const metadata: ExperimentMetadata = {
         prompt_id: input.promptId,
@@ -247,7 +254,7 @@ export const experimentsRouter = createTRPCRouter({
         model: promptConfig.model || input.modelConfig.model,
         model_params: {
           ...input.modelConfig.modelParams,
-          ...promptConfig,
+          ...promptModelParams,
         },
         ...(input.structuredOutputSchema && {
           structured_output_schema: input.structuredOutputSchema,
